@@ -1,0 +1,19 @@
+name: ks_dart
+description: 快手发布与主题封面生成的 Dart 版本（ks_ios.py 生态的 Dart 移植）
+publish_to: "none"
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_inappwebview: ^6.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

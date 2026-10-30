@@ -1,0 +1,60 @@
+name: iOS 打包（免签名 · 不需要 Apple 账号）
+
+on:
+  workflow_dispatch: # 手动触发
+  push:
+    branches: [main, master]
+    paths:
+      - 'dart_ks/**'
+      - '.github/workflows/ios-unsigned.yml'
+
+env:
+  APP_DIR: dart_ks          # 如果只把 dart_ks 单独建仓，把它改成 .
+  FLUTTER_VERSION: '3.47.9'
+
+jobs:
+  build:
+    runs-on: macos-14       # GitHub 的 macOS 构建机（Apple Silicon）
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: 环境信息
+        run: |
+          flutter --version
+          xcodebuild -version
+          pod --version || true
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test          # 顺带验证封面渲染能不能出图
+
+      - name: 编译（不签名）
+        run: flutter build ios --release --no-codesign
+
+      - name: 打成 ipa
+        run: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -R Runner.app Payload/
+          zip -qry Runner-unsigned.ipa Payload
+          ls -lh Runner-unsigned.ipa
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: Runner-unsigned-ipa
+          path: |
+            ${{ env.APP_DIR }}/build/ios/iphoneos/Runner-unsigned.ipa
+            ${{ env.APP_DIR }}/cover_out.png
+          if-no-files-found: warn
