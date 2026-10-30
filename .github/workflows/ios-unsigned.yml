@@ -12,6 +12,10 @@ env:
   APP_DIR: dart_ks          # 如果只把 dart_ks 单独建仓，把它改成 .
   FLUTTER_VERSION: '3.47.9'
 
+# 发布 Release 需要写权限（默认 GITHUB_TOKEN 是只读的）
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-14       # GitHub 的 macOS 构建机（Apple Silicon）
@@ -58,3 +62,20 @@ jobs:
             ${{ env.APP_DIR }}/build/ios/iphoneos/Runner-unsigned.ipa
             ${{ env.APP_DIR }}/cover_out.png
           if-no-files-found: warn
+
+      # 关键：挂到 Release，这样免登录就能下载（Artifact 下载必须登录）
+      # 固定 tag = ios-latest，每次构建覆盖同一个 Release，只保留最新包
+      - name: 发布到 Release（免登录下载）
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-latest
+          name: iOS 最新构建（免签名）
+          body: |
+            自动构建 · 第 ${{ github.run_number }} 次 · ${{ github.sha }}
+
+            下载：本页 `Runner-unsigned.ipa`，用 Sideloadly / AltStore 自签后安装（7 天有效）。
+          files: ${{ env.APP_DIR }}/build/ios/iphoneos/Runner-unsigned.ipa
+          prerelease: true
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
